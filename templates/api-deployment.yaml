@@ -1,0 +1,79 @@
+{{- if .Values.api.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "AppCtx.apiName" . }}
+  labels: {{ include "AppCtx.apiLabels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels: {{ include "AppCtx.apiSelectorLabels" . | nindent 8 }}
+  template:
+    metadata:
+      labels: {{ include "AppCtx.apiLabels" . | nindent 10 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/api-config.yaml") . | sha256sum }}
+    spec:
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+      imagePullSecrets:
+        - name: takima-school-registry
+      containers:
+      - name: api
+        image: {{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}
+        resources:
+          requests:
+            memory: {{ .Values.api.requests.memory }}
+            cpu: {{ .Values.api.requests.cpu }}
+          limits:
+            memory: {{ .Values.api.limits.memory }}
+            cpu: {{ .Values.api.limits.cpu }}
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+          initialDelaySeconds: {{ .Values.api.startupProbe.initialDelaySeconds }}
+          periodSeconds: {{ .Values.api.startupProbe.periodSeconds }}
+          successThreshold: 1
+          failureThreshold: {{ .Values.api.startupProbe.failureThreshold }}
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+          periodSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+          periodSeconds: 1
+          successThreshold: 1
+          failureThreshold: 3        
+        securityContext:
+          allowPrivilegeEscalation: false
+        ports:
+        - containerPort: 8080
+        env: 
+          - name: DB_ENDPOINT
+            valueFrom:
+              configMapKeyRef:
+                name: {{ template "AppCtx.apiName" . }}
+                key: DB_ENDPOINT
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                name: {{ template "AppCtx.apiName" . }}
+                key: DB_NAME
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "AppCtx.dbName" . }}-credentials  # Nom du secret
+                key: pg_username     # nom de la clef dans le config map
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "AppCtx.dbName" . }}-credentials  # Nom du secret
+                key: pg_password 
+{{- end }}

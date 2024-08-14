@@ -1,0 +1,12 @@
+{{- if .Values.db.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "AppCtx.dbName" . }}
+  labels: {{ include "AppCtx.dbLabels" . | nindent 4 }}
+spec:
+  selector: {{ include "AppCtx.dbSelectorLabels" . | nindent 4 }}
+  type: ClusterIP
+  ports:
+   - port: 5432
+{{- end}}

@@ -1,0 +1,13 @@
+{{- if .Values.front.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "AppCtx.frontName" . }}
+  labels: {{ include "AppCtx.frontLabels" . | nindent 8 }}
+spec:
+  selector: {{ include "AppCtx.frontSelectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+{{- end }}

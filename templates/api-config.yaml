@@ -1,0 +1,10 @@
+{{- if .Values.api.enabled }}  
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ template "AppCtx.apiName" . }}
+  labels: {{ include "AppCtx.apiLabels" . | nindent 4 }}
+data:
+  DB_ENDPOINT: "{{ template "AppCtx.dbName" . }}:5432"
+  DB_NAME: {{ .Values.db.name }}
+{{- end }}

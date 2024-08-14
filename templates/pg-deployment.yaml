@@ -1,0 +1,52 @@
+{{- if .Values.db.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "AppCtx.dbName" . }}
+  labels: {{ include "AppCtx.dbLabels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {{ include "AppCtx.dbSelectorLabels" . | nindent 8 }}
+  template:
+    metadata:
+      labels: {{ include "AppCtx.dbLabels" . | nindent 10 }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/front-config.yaml") . | sha256sum }}
+    spec:
+      containers:
+      - name: postgres
+        image: {{ .Values.db.image.repository }}:{{ .Values.db.image.tag }}
+        ports:
+        - containerPort: 80
+        env:
+          - name: POSTGRES_DB
+            valueFrom:
+              configMapKeyRef:
+                name: {{ template "AppCtx.dbName" . }}  # Nom du configmap
+                key: db_name     # nom de la clef dans le config map contenant le nom de la DB
+          - name: PGDATA
+            valueFrom:
+              configMapKeyRef:
+                name: {{ template "AppCtx.dbName" . }}  # Nom du configmap
+                key: db_path     # nom de la clef dans le configMap contenant path ou installer la db dans le volume persistant
+          - name: POSTGRES_USER
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "AppCtx.dbName" . }}-credentials  # Nom du secret
+                key: pg_username     # nom de la clef dans le secret
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ template "AppCtx.dbName" . }}-credentials  # Nom du secret
+                key: pg_password     # nom de la clef dans le secret contenant le password
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: pg-data
+      imagePullSecrets:
+      - name: takima-school-registry
+      volumes:
+      - name: pg-data
+        persistentVolumeClaim:
+          claimName: {{ template "AppCtx.dbName" . }}
+{{- end }}

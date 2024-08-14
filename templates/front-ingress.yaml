@@ -1,0 +1,26 @@
+{{- if .Values.front.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+ name: {{ template "AppCtx.frontName" . }}
+ labels: {{ include "AppCtx.frontLabels" . | nindent 4 }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.front.ingress.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ template "AppCtx.frontName" . }}
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+  {{- if .Values.front.ingress.tlsEnabled }}
+  tls:
+  - hosts:
+      - {{ .Values.front.ingress.host }}
+    secretName: app-wildcard
+  {{- end }}
+{{- end }}

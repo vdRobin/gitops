@@ -1,0 +1,13 @@
+{{- if .Values.api.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ template "AppCtx.apiName" . }}
+  labels: {{ include "AppCtx.apiLabels" . | nindent 8 }}
+spec:
+  selector: {{ include "AppCtx.apiSelectorLabels" . | nindent 4 }}
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+{{- end }}
